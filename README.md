@@ -1,2 +1,2 @@
-# zero2hero_
+# zero2hero
 This is a repository following Andrej Karpathy's course Neural Networks: Zero to Hero. In which I will be building micrograd, makemore, MLP, and many other NLP concepts, including the transformer, from scratch. 
