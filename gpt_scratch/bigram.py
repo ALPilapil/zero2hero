@@ -11,11 +11,12 @@ eval_interval = 300
 learning_rate = 1e-2
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 eval_iters = 200
+n_embed = 32
 # ------------
 
 torch.manual_seed(1337)
 
-wget.download('https://raw.githubusercontent.com/karpathy/char-rnn/master/data/tinyshakespeare/input.txt')
+# wget.download('https://raw.githubusercontent.com/karpathy/char-rnn/master/data/tinyshakespeare/input.txt')
 with open('input.txt', 'r', encoding='utf-8') as f:
     text = f.read()
 
@@ -61,15 +62,24 @@ def estimate_loss():
 # super simple bigram model
 class BigramLanguageModel(nn.Module):
 
-    def __init__(self, vocab_size):
+    def __init__(self):
         super().__init__()
         # each token directly reads off the logits for the next token from a lookup table
-        self.token_embedding_table = nn.Embedding(vocab_size, vocab_size)
+        self.token_embedding_table = nn.Embedding(vocab_size, n_embed)    # n_embed = number of embedding dimensions
+        self.position_embedding_table = nn.Embedding(block_size, n_embed)        # embedding tables are m x n. when we pass in the index (idx) of a char (an int in this case) 
+                                                                                 # say the char = m, it goes to the mth row in the table to get an embedding
+                                                                                 # at the heart of it, it is simply turning ints into some vector representation
+                                                                                 # this table is 8 x 32
+        self.lm_head = nn.Linear(n_embed, vocab_size)   # lm = language modeling
 
     def forward(self, idx, targets=None):
+        B, T = idx.shape
 
         # idx and targets are both (B,T) tensor of integers
-        logits = self.token_embedding_table(idx) # (B,T,C)
+        tok_emb = self.token_embedding_table(idx) # (B,T,C)
+        pos_emb = self.position_embedding_table(torch.arange(T, device=device))  # ints from 0 to T-1. (T, C). remember T = 8 in this case. so all this is doing is creating embeddings for each thing
+        x = tok_emb + pos_emb # (B, T, C)
+        logits = self.lm_head(x) # (B,T,vocab_size)
 
         if targets is None:
             loss = None
